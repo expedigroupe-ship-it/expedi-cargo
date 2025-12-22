@@ -1,50 +1,70 @@
-<!DOCTYPE html>
-<html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EXPEDI-CARGO</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              midnight: '#0F172A',
-              midnightLight: '#1E293B',
-              pureOrange: '#FF6B00',
-            },
-            fontFamily: { sans: ['Inter', 'sans-serif'] }
-          }
-        }
-      }
-    </script>
-    <style>
-      body { background-color: #0F172A; color: #ffffff; }
-      .no-scrollbar::-webkit-scrollbar { display: none; }
-      .marker-pulse {
-        width: 20px; height: 20px; background: rgba(255,107,0,0.6);
-        border-radius: 50%; box-shadow: 0 0 10px #FF6B00;
-        animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-      }
-      @keyframes pulse-ring { 0% { transform: scale(0.33); opacity: 1; } 80%, 100% { transform: scale(2); opacity: 0; } }
-    </style>
-    <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@18.2.0",
-        "react-dom": "https://esm.sh/react-dom@18.2.0",
-        "react-leaflet": "https://esm.sh/react-leaflet@4.2.1",
-        "leaflet": "https://esm.sh/leaflet@1.9.4",
-        "lucide-react": "https://esm.sh/lucide-react@0.263.1"
-      }
-    }
-    </script>
-  </head>
-  <body class="no-scrollbar">
-    <div id="root"></div>
-    <script type="module" src="/src/index.tsx"></script>
-  </body>
-</html>
+import React from 'react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import { Truck, User, Navigation } from 'lucide-react';
+
+function App() {
+  const communes = ["Abobo", "Adjamé", "Anyama", "Attécoubé", "Bingerville", "Cocody", "Koumassi", "Marcory", "Plateau", "Port-Bouët", "Songon", "Treichville", "Yopougon"];
+
+  return (
+    <div className="min-h-screen bg-midnight text-white p-4 font-sans no-scrollbar">
+      <header className="flex items-center justify-between mb-8 bg-midnightLight p-4 rounded-xl border border-slate-700 shadow-lg">
+        <h1 className="text-2xl font-bold text-pureOrange flex items-center gap-2">
+          <Truck size={28} /> EXPEDI-CARGO
+        </h1>
+      </header>
+
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* EXPÉDITEUR */}
+        <div className="bg-midnightLight p-6 rounded-2xl border border-slate-700 shadow-xl">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-pureOrange">
+            <User size={20} /> Expéditeur (Ramassage)
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" placeholder="Nom et Prénoms" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none focus:border-pureOrange" />
+            <select className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none">
+              <option>Commune de départ</option>
+              {communes.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <input type="text" placeholder="Quartier" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none" />
+            <div className="grid grid-cols-2 gap-2">
+              <input type="text" placeholder="Rue" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none" />
+              <input type="text" placeholder="Porte" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none" />
+            </div>
+          </div>
+        </div>
+
+        {/* DESTINATAIRE */}
+        <div className="bg-midnightLight p-6 rounded-2xl border border-slate-700 shadow-xl">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-pureOrange">
+            <Navigation size={20} /> Destinataire (Livraison)
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" placeholder="Nom et Prénoms" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none focus:border-pureOrange" />
+            <select className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none">
+              <option>Commune de destination</option>
+              {communes.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <input type="text" placeholder="Quartier" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none" />
+            <div className="grid grid-cols-2 gap-2">
+              <input type="text" placeholder="Rue" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none" />
+              <input type="text" placeholder="Porte" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none" />
+            </div>
+          </div>
+        </div>
+
+        {/* CARTE ABIDJAN */}
+        <div className="h-80 rounded-2xl border border-slate-700 shadow-xl overflow-hidden">
+          <MapContainer center={[5.3484, -4.0244]} zoom={12} style={{ height: '100%', width: '100%' }}>
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <Marker position={[5.3484, -4.0244]} icon={L.divIcon({ className: 'marker-pulse' })}>
+              <Popup>Abidjan - Hub Central</Popup>
+            </Marker>
+          </MapContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;
