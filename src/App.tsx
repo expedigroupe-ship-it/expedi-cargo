@@ -14,7 +14,7 @@ function App() {
         </h1>
       </header>
 
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6 pb-10">
         {/* EXPÉDITEUR */}
         <div className="bg-midnightLight p-6 rounded-2xl border border-slate-700 shadow-xl">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-pureOrange">
@@ -26,10 +26,10 @@ function App() {
               <option>Commune de départ</option>
               {communes.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-            <input type="text" placeholder="Quartier" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none" />
+            <input type="text" placeholder="Quartier" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none focus:border-pureOrange" />
             <div className="grid grid-cols-2 gap-2">
-              <input type="text" placeholder="Rue" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none" />
-              <input type="text" placeholder="Porte" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none" />
+              <input type="text" placeholder="Rue" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none focus:border-pureOrange" />
+              <input type="text" placeholder="Porte" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none focus:border-pureOrange" />
             </div>
           </div>
         </div>
@@ -45,20 +45,20 @@ function App() {
               <option>Commune de destination</option>
               {communes.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-            <input type="text" placeholder="Quartier" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none" />
+            <input type="text" placeholder="Quartier" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none focus:border-pureOrange" />
             <div className="grid grid-cols-2 gap-2">
-              <input type="text" placeholder="Rue" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none" />
-              <input type="text" placeholder="Porte" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none" />
+              <input type="text" placeholder="Rue" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none focus:border-pureOrange" />
+              <input type="text" placeholder="Porte" className="bg-midnight border border-slate-600 p-3 rounded-lg outline-none focus:border-pureOrange" />
             </div>
           </div>
         </div>
 
         {/* CARTE ABIDJAN */}
-        <div className="h-80 rounded-2xl border border-slate-700 shadow-xl overflow-hidden">
-          <MapContainer center={[5.3484, -4.0244]} zoom={12} style={{ height: '100%', width: '100%' }}>
+        <div className="bg-midnightLight p-2 rounded-2xl border border-slate-700 shadow-xl overflow-hidden h-80">
+          <MapContainer center={[5.3484, -4.0244]} zoom={12} style={{ height: '100%', width: '100%', background: '#0F172A' }}>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <Marker position={[5.3484, -4.0244]} icon={L.divIcon({ className: 'marker-pulse' })}>
-              <Popup>Abidjan - Hub Central</Popup>
+            <Marker position={[5.3484, -4.0244]} icon={L.divIcon({ className: 'marker-pulse', iconSize: [12, 12] })}>
+              <Popup>Abidjan - Hub Central Expedi-Cargo</Popup>
             </Marker>
           </MapContainer>
         </div>
