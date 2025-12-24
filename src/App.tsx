@@ -9,7 +9,7 @@ import { FAQScreen } from './components/FAQScreen';
 import { SupportScreen } from './components/SupportScreen';
 import { User, Package, UserRole, PackageStatus, AppNotification, PaymentMethod, PricingConfig } from './types';
 import { DatabaseService } from './services/database';
-import { Home, User as UserIcon, RefreshCw, CloudLightning, Server } from 'lucide-react';
+import { Home, User as UserIcon, RefreshCw, CloudLightning } from 'lucide-react';
 
 const DEFAULT_PRICING: PricingConfig = {
   basePriceIntra: 1500,
@@ -66,10 +66,11 @@ const App: React.FC = () => {
         }
 
         const dbUsers = await DatabaseService.getUsers();
-        setAllUsers(dbUsers.length > 0 ? dbUsers : [DEFAULT_ADMIN]);
+        const finalUsers = dbUsers.length > 0 ? dbUsers : [DEFAULT_ADMIN];
+        setAllUsers(finalUsers);
         
         if (currentUser) {
-            const updatedMe = dbUsers.find(u => u.id === currentUser.id);
+            const updatedMe = finalUsers.find(u => u.id === currentUser.id);
             if (updatedMe) {
                 setCurrentUser(updatedMe);
                 sessionStorage.setItem('expedi_current_session', JSON.stringify(updatedMe));
@@ -154,8 +155,6 @@ const App: React.FC = () => {
       syncWithBackend(true);
   };
 
-  // Fixed the error: Cannot find name 'onUpdatePricing'.
-  // Implemented the handler to update pricing configuration in the state.
   const onUpdatePricing = (config: PricingConfig) => {
     setPricingConfig(config);
   };
