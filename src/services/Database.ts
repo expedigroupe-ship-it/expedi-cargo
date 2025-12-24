@@ -3,8 +3,7 @@ import { Package, User, AppNotification, PackageStatus } from '../types';
 
 /**
  * DATABASE SERVICE (MOCK BACKEND)
- * Pour un environnement de production, remplacez les appels localStorage/BroadcastChannel
- * par des appels fetch() vers votre API Node.js/Python/Firebase.
+ * Gère la persistance locale et la synchronisation inter-onglets.
  */
 export class DatabaseService {
   private static STORAGE_KEYS = {
@@ -13,29 +12,33 @@ export class DatabaseService {
     NOTIFS: 'expedi_cargo_db_notifications'
   };
 
-  // Canal de communication en temps réel (Inter-onglets)
-  private static channel = new BroadcastChannel('expedi_cargo_sync');
+  // Canal de communication sécurisé avec fallback
+  private static channel: BroadcastChannel | null = typeof window !== 'undefined' ? new BroadcastChannel('expedi_cargo_sync') : null;
 
   static onMessage(callback: (data: any) => void) {
-    this.channel.onmessage = (event) => callback(event.data);
+    if (this.channel) {
+      this.channel.onmessage = (event) => callback(event.data);
+    }
   }
 
   private static notifyOthers(type: 'UPDATE_PACKAGES' | 'UPDATE_USERS' | 'NEW_NOTIFICATION') {
-    this.channel.postMessage({ type, timestamp: Date.now() });
+    if (this.channel) {
+      this.channel.postMessage({ type, timestamp: Date.now() });
+    }
   }
 
   // --- PACKAGES ---
   static async savePackage(pkg: Package): Promise<Package> {
-    await this.delay(1000); // Simulation temps de traitement serveur
+    await this.delay(800);
     const packages = await this.getPackages();
     const updated = [pkg, ...packages];
     localStorage.setItem(this.STORAGE_KEYS.PACKAGES, JSON.stringify(updated));
-    
     this.notifyOthers('UPDATE_PACKAGES');
     return pkg;
   }
 
   static async getPackages(): Promise<Package[]> {
+    if (typeof window === 'undefined') return [];
     const data = localStorage.getItem(this.STORAGE_KEYS.PACKAGES);
     return data ? JSON.parse(data) : [];
   }
@@ -54,6 +57,7 @@ export class DatabaseService {
 
   // --- USERS ---
   static async getUsers(): Promise<User[]> {
+    if (typeof window === 'undefined') return [];
     const data = localStorage.getItem(this.STORAGE_KEYS.USERS);
     return data ? JSON.parse(data) : [];
   }
@@ -79,6 +83,7 @@ export class DatabaseService {
 
   // --- NOTIFICATIONS ---
   static async getNotifications(userId: string): Promise<AppNotification[]> {
+    if (typeof window === 'undefined') return [];
     const data = localStorage.getItem(this.STORAGE_KEYS.NOTIFS);
     const all: AppNotification[] = data ? JSON.parse(data) : [];
     return all.filter(n => n.userId === userId);
