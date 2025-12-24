@@ -2,9 +2,9 @@
 import { Package, User, AppNotification, PackageStatus } from '../types';
 
 /**
- * Ce service simule les appels à un serveur Backend (ex: Node.js, Firebase ou Supabase).
- * Pour un déploiement réel sur différents appareils, les appels localStorage seraient 
- * remplacés par des appels fetch() vers une API réelle.
+ * DATABASE SERVICE (MOCK BACKEND)
+ * Pour un environnement de production, remplacez les appels localStorage/BroadcastChannel
+ * par des appels fetch() vers votre API Node.js/Python/Firebase.
  */
 export class DatabaseService {
   private static STORAGE_KEYS = {
@@ -13,13 +13,25 @@ export class DatabaseService {
     NOTIFS: 'expedi_cargo_db_notifications'
   };
 
+  // Canal de communication en temps réel (Inter-onglets)
+  private static channel = new BroadcastChannel('expedi_cargo_sync');
+
+  static onMessage(callback: (data: any) => void) {
+    this.channel.onmessage = (event) => callback(event.data);
+  }
+
+  private static notifyOthers(type: 'UPDATE_PACKAGES' | 'UPDATE_USERS' | 'NEW_NOTIFICATION') {
+    this.channel.postMessage({ type, timestamp: Date.now() });
+  }
+
   // --- PACKAGES ---
   static async savePackage(pkg: Package): Promise<Package> {
-    console.log("[BACKEND] Enregistrement du colis sur le serveur...", pkg.trackingNumber);
-    await this.delay(800); // Simulation latence réseau
+    await this.delay(1000); // Simulation temps de traitement serveur
     const packages = await this.getPackages();
     const updated = [pkg, ...packages];
     localStorage.setItem(this.STORAGE_KEYS.PACKAGES, JSON.stringify(updated));
+    
+    this.notifyOthers('UPDATE_PACKAGES');
     return pkg;
   }
 
@@ -29,7 +41,6 @@ export class DatabaseService {
   }
 
   static async updatePackageStatus(pkgId: string, status: PackageStatus, courierId?: string): Promise<void> {
-    console.log(`[BACKEND] Mise à jour du colis ${pkgId} vers ${status}`);
     const packages = await this.getPackages();
     const updated = packages.map(p => {
       if (p.id === pkgId) {
@@ -38,6 +49,7 @@ export class DatabaseService {
       return p;
     });
     localStorage.setItem(this.STORAGE_KEYS.PACKAGES, JSON.stringify(updated));
+    this.notifyOthers('UPDATE_PACKAGES');
   }
 
   // --- USERS ---
@@ -48,10 +60,11 @@ export class DatabaseService {
 
   static async saveUser(user: User): Promise<void> {
     const users = await this.getUsers();
-    const exists = users.findIndex(u => u.id === user.id);
-    if (exists > -1) users[exists] = user;
+    const index = users.findIndex(u => u.id === user.id || u.phone === user.phone);
+    if (index > -1) users[index] = { ...users[index], ...user };
     else users.push(user);
     localStorage.setItem(this.STORAGE_KEYS.USERS, JSON.stringify(users));
+    this.notifyOthers('UPDATE_USERS');
   }
 
   static async updateUserBalances(userId: string, wallet: number, earnings: number): Promise<void> {
@@ -61,6 +74,7 @@ export class DatabaseService {
       return u;
     });
     localStorage.setItem(this.STORAGE_KEYS.USERS, JSON.stringify(updated));
+    this.notifyOthers('UPDATE_USERS');
   }
 
   // --- NOTIFICATIONS ---
@@ -75,6 +89,7 @@ export class DatabaseService {
     const all: AppNotification[] = data ? JSON.parse(data) : [];
     all.unshift(notif);
     localStorage.setItem(this.STORAGE_KEYS.NOTIFS, JSON.stringify(all));
+    this.notifyOthers('NEW_NOTIFICATION');
   }
 
   static async markNotificationRead(notifId: string): Promise<void> {
