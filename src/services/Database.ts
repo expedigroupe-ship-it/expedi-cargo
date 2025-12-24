@@ -28,19 +28,18 @@ export class DatabaseService {
   }
 
   // --- PACKAGES ---
+  static async getPackages(): Promise<Package[]> {
+    if (typeof window === 'undefined') return [];
+    const data = localStorage.getItem(this.STORAGE_KEYS.PACKAGES);
+    return data ? JSON.parse(data) : [];
+  }
+
   static async savePackage(pkg: Package): Promise<Package> {
-    await this.delay(800);
     const packages = await this.getPackages();
     const updated = [pkg, ...packages];
     localStorage.setItem(this.STORAGE_KEYS.PACKAGES, JSON.stringify(updated));
     this.notifyOthers('UPDATE_PACKAGES');
     return pkg;
-  }
-
-  static async getPackages(): Promise<Package[]> {
-    if (typeof window === 'undefined') return [];
-    const data = localStorage.getItem(this.STORAGE_KEYS.PACKAGES);
-    return data ? JSON.parse(data) : [];
   }
 
   static async updatePackageStatus(pkgId: string, status: PackageStatus, courierId?: string): Promise<void> {
@@ -65,8 +64,11 @@ export class DatabaseService {
   static async saveUser(user: User): Promise<void> {
     const users = await this.getUsers();
     const index = users.findIndex(u => u.id === user.id || u.phone === user.phone);
-    if (index > -1) users[index] = { ...users[index], ...user };
-    else users.push(user);
+    if (index > -1) {
+      users[index] = { ...users[index], ...user };
+    } else {
+      users.push(user);
+    }
     localStorage.setItem(this.STORAGE_KEYS.USERS, JSON.stringify(users));
     this.notifyOthers('UPDATE_USERS');
   }
@@ -101,10 +103,6 @@ export class DatabaseService {
     const data = localStorage.getItem(this.STORAGE_KEYS.NOTIFS);
     const all: AppNotification[] = data ? JSON.parse(data) : [];
     const updated = all.map(n => n.id === notifId ? { ...n, isRead: true } : n);
-    localStorage.setItem(this.STORAGE_KEYS.NOTIFS, JSON.stringify(updated));
-  }
-
-  private static delay(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    localStorage.setItem(this.STORAGE_KEYS.NOTIFS, JSON.stringify(all));
   }
 }
