@@ -1,5 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
 
+import { GoogleGenAI, Type } from "@google/genai";
+
+// Use the environment variable for API key as per guidelines.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 interface EstimationResult {
@@ -8,6 +10,9 @@ interface EstimationResult {
   reasoning: string;
 }
 
+/**
+ * Service to estimate shipping price and time using Gemini AI.
+ */
 export const estimateShipping = async (
   description: string,
   origin: string,
@@ -31,23 +36,28 @@ export const estimateShipping = async (
       - Provide a realistic price number (integer only).
       - Provide a short estimated time string (e.g. "2 heures", "1 jour").
       - Provide a very short reasoning in French.
-
-      Return ONLY JSON:
-      {
-        "price": number,
-        "time": "string",
-        "reasoning": "string"
-      }
     `;
 
+    // Updated to use gemini-3-flash-preview for basic text tasks.
+    // Added responseSchema for more reliable structured output.
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            price: { type: Type.NUMBER, description: 'Shipping price in XOF' },
+            time: { type: Type.STRING, description: 'Estimated delivery time' },
+            reasoning: { type: Type.STRING, description: 'Brief reasoning in French' }
+          },
+          required: ['price', 'time', 'reasoning']
+        }
       }
     });
 
+    // Access the .text property directly as per latest SDK guidelines.
     const text = response.text;
     if (!text) throw new Error("No response from AI");
     
