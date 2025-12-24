@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AuthScreen } from './components/AuthScreen';
 import { SenderDashboard } from './components/SenderDashboard';
 import { CourierDashboard } from './components/CourierDashboard';
@@ -9,7 +9,7 @@ import { FAQScreen } from './components/FAQScreen';
 import { SupportScreen } from './components/SupportScreen';
 import { User, Package, UserRole, PackageStatus, AppNotification, PaymentMethod, PricingConfig } from './types';
 import { DatabaseService } from './services/database';
-import { Home, User as UserIcon, Wifi, WifiOff, RefreshCw, Server } from 'lucide-react';
+import { Home, User as UserIcon, Wifi, WifiOff, RefreshCw, Server, CloudLightning } from 'lucide-react';
 
 const DEFAULT_PRICING: PricingConfig = {
   basePriceIntra: 1500,
@@ -37,83 +37,80 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [pricingConfig, setPricingConfig] = useState<PricingConfig>(DEFAULT_PRICING);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState<number>(Date.now());
   
   const [lastGain, setLastGain] = useState<{amount: number, tracking: string} | null>(null);
   const [currentView, setCurrentView] = useState<'HOME' | 'PROFILE' | 'FAQ' | 'SUPPORT'>('HOME');
 
   const notifiedPackagesRef = useRef<Set<string>>(new Set());
 
-  // 1. CHARGEMENT INITIAL DEPUIS LE "SERVEUR"
-  useEffect(() => {
-    const initData = async () => {
-        const savedUser = sessionStorage.getItem('expedi_current_session');
-        if (savedUser) setCurrentUser(JSON.parse(savedUser));
-
-        const dbUsers = await DatabaseService.getUsers();
-        if (dbUsers.length === 0) {
-            await DatabaseService.saveUser(DEFAULT_ADMIN);
-            setAllUsers([DEFAULT_ADMIN]);
-        } else {
-            setAllUsers(dbUsers);
-        }
-
+  // FONCTION DE SYNCHRONISATION MAÎTRESSE
+  const syncWithBackend = useCallback(async (isManual = false) => {
+    if (isSyncing && !isManual) return;
+    setIsSyncing(true);
+    
+    try {
+        // 1. Récupérer Colis
         const dbPackages = await DatabaseService.getPackages();
-        setPackages(dbPackages);
-        dbPackages.forEach(p => notifiedPackagesRef.current.add(p.id));
-
-        const savedPricing = localStorage.getItem('expedi_pricing');
-        if (savedPricing) setPricingConfig(JSON.parse(savedPricing));
-    };
-    initData();
-  }, []);
-
-  // 2. BOUCLE DE SYNCHRONISATION "LIVE BACKEND"
-  useEffect(() => {
-    const syncInterval = setInterval(async () => {
-        setIsSyncing(true);
         
-        // Sync centralisée via le DatabaseService
-        const storagePkgs = await DatabaseService.getPackages();
-        
-        // Logique de notification pour livreur
+        // Notification automatique si nouveau colis (pour les livreurs)
         if (currentUser?.role === UserRole.COURIER) {
-            storagePkgs.forEach(pkg => {
+            dbPackages.forEach(pkg => {
                 if (pkg.status === PackageStatus.PENDING && !notifiedPackagesRef.current.has(pkg.id)) {
                     handleAutoNotify(
                         currentUser.id, 
-                        'Nouveau Colis Disponible ! 📦', 
-                        `Une course de ${pkg.price} F à ${pkg.originCity}.`,
+                        'Nouveau Colis ! 📦', 
+                        `${pkg.price} F - ${pkg.originCity}`,
                         pkg.id
                     );
                     notifiedPackagesRef.current.add(pkg.id);
                 }
             });
         }
-        
-        setPackages(storagePkgs);
+        setPackages(dbPackages);
 
-        // Sync Notifications
+        // 2. Récupérer Notifications
         if (currentUser) {
             const myNotifs = await DatabaseService.getNotifications(currentUser.id);
             setNotifications(myNotifs);
         }
 
-        // Sync Profil et Soldes
-        const storageUsers = await DatabaseService.getUsers();
-        setAllUsers(storageUsers);
+        // 3. Récupérer Utilisateurs et actualiser la session
+        const dbUsers = await DatabaseService.getUsers();
+        setAllUsers(dbUsers);
+        
         if (currentUser) {
-            const updatedMe = storageUsers.find(u => u.id === currentUser.id);
-            if (updatedMe && JSON.stringify(updatedMe) !== JSON.stringify(currentUser)) {
+            const updatedMe = dbUsers.find(u => u.id === currentUser.id);
+            if (updatedMe) {
                 setCurrentUser(updatedMe);
                 sessionStorage.setItem('expedi_current_session', JSON.stringify(updatedMe));
             }
         }
+        
+        setLastSync(Date.now());
+    } catch (e) {
+        console.error("Erreur de synchro:", e);
+    } finally {
+        setTimeout(() => setIsSyncing(false), 500);
+    }
+  }, [currentUser, isSyncing]);
 
-        setTimeout(() => setIsSyncing(false), 800);
-    }, 4000); 
+  // Initialisation et Écoute du canal temps réel
+  useEffect(() => {
+    syncWithBackend();
+    
+    // Écoute les changements venant d'autres onglets
+    DatabaseService.onMessage((msg) => {
+        console.log("[REALTIME] Signal reçu:", msg.type);
+        syncWithBackend(true);
+    });
+  }, []);
 
-    return () => clearInterval(syncInterval);
-  }, [currentUser]);
+  // Boucle de secours (Polling) toutes le 10s
+  useEffect(() => {
+    const interval = setInterval(() => syncWithBackend(), 10000);
+    return () => clearInterval(interval);
+  }, [syncWithBackend]);
 
   const handleAutoNotify = async (userId: string, title: string, message: string, packageId?: string) => {
       const newNotif: AppNotification = {
@@ -134,6 +131,7 @@ const App: React.FC = () => {
     setCurrentUser(userWithWallet);
     await DatabaseService.saveUser(userWithWallet);
     sessionStorage.setItem('expedi_current_session', JSON.stringify(userWithWallet));
+    syncWithBackend(true);
   };
 
   const handleLogout = () => {
@@ -143,19 +141,18 @@ const App: React.FC = () => {
   };
 
   const handleCreatePackage = async (pkg: Package) => {
-    setIsSyncing(true);
-    const saved = await DatabaseService.savePackage(pkg);
-    setPackages(prev => [saved, ...prev]);
-    notifiedPackagesRef.current.add(saved.id);
-    setIsSyncing(false);
+    await DatabaseService.savePackage(pkg);
+    notifiedPackagesRef.current.add(pkg.id);
+    syncWithBackend(true);
   };
 
   const handleAcceptPackage = async (pkgId: string, courierId: string) => {
     await DatabaseService.updatePackageStatus(pkgId, PackageStatus.ACCEPTED, courierId);
     const pkg = packages.find(p => p.id === pkgId);
     if (pkg) {
-        await handleAutoNotify(pkg.senderId, 'Livreur en route ! 🛵', `Votre colis ${pkg.trackingNumber} a été accepté.`, pkg.id);
+        await handleAutoNotify(pkg.senderId, 'Livreur en route ! 🛵', `Colis ${pkg.trackingNumber} accepté.`, pkg.id);
     }
+    syncWithBackend(true);
   };
 
   const handleUpdateStatus = async (pkgId: string, status: PackageStatus) => {
@@ -166,8 +163,9 @@ const App: React.FC = () => {
        const net = pkg.price - commission;
        await updateCourierWallets(pkg.courierId, pkg.price, commission, pkg.paymentMethod);
        if (currentUser?.id === pkg.courierId) setLastGain({ amount: net, tracking: pkg.trackingNumber });
-       await handleAutoNotify(pkg.senderId, 'Colis Livré ! ✅', `Le colis ${pkg.trackingNumber} est livré.`, pkg.id);
+       await handleAutoNotify(pkg.senderId, 'Colis Livré ! ✅', `Colis ${pkg.trackingNumber} bien livré.`, pkg.id);
     }
+    syncWithBackend(true);
   };
 
   const updateCourierWallets = async (courierId: string | undefined, price: number, commission: number, method: PaymentMethod) => {
@@ -187,6 +185,7 @@ const App: React.FC = () => {
 
   const handleMarkNotifAsRead = async (notifId: string) => {
       await DatabaseService.markNotificationRead(notifId);
+      syncWithBackend(true);
   };
 
   if (!currentUser) {
@@ -200,28 +199,32 @@ const App: React.FC = () => {
             <h1 className="font-bold text-lg tracking-wide">EXPEDI<span className="text-pureOrange">-CARGO</span></h1>
             <div className="flex items-center gap-1.5 ml-2 px-2 py-1 bg-slate-800/50 rounded-full border border-slate-700">
                 <div className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-pureOrange animate-pulse' : 'bg-green-500'}`}></div>
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Backend Live</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Live DB</span>
             </div>
         </div>
-        <div className="flex items-center gap-3">
-            <div className="text-[10px] font-bold text-slate-500 flex items-center gap-1 uppercase">
-                <Server className={`w-3 h-3 ${isSyncing ? 'text-pureOrange' : 'text-green-500'}`} /> {isSyncing ? 'Sync...' : 'Online'}
+        <div className="flex items-center gap-2">
+            <button onClick={() => syncWithBackend(true)} className={`p-2 rounded-lg bg-slate-800 border border-slate-700 transition-all ${isSyncing ? 'rotate-180 text-pureOrange' : 'text-slate-400'}`}>
+                <RefreshCw className="w-4 h-4" />
+            </button>
+            <div className="text-[10px] font-bold text-slate-500 flex items-center gap-1 uppercase bg-slate-800/50 px-2 py-1.5 rounded-lg border border-slate-700">
+                <CloudLightning className={`w-3 h-3 ${isSyncing ? 'text-pureOrange animate-bounce' : 'text-green-500'}`} /> 
+                {isSyncing ? 'Sync...' : 'Online'}
             </div>
         </div>
       </header>
 
       <main>
         {currentView === 'PROFILE' ? (
-            <ProfileScreen user={currentUser} onLogout={handleLogout} onDelete={() => {}} onNavigate={setCurrentView} onUpdateUser={async (u) => { await DatabaseService.saveUser(u); setCurrentUser(u); }} />
+            <ProfileScreen user={currentUser} onLogout={handleLogout} onDelete={() => {}} onNavigate={setCurrentView} onUpdateUser={async (u) => { await DatabaseService.saveUser(u); setCurrentUser(u); syncWithBackend(true); }} />
         ) : currentView === 'FAQ' ? (
             <FAQScreen onBack={() => setCurrentView('PROFILE')} />
         ) : (
             currentUser.role === UserRole.ADMIN ? (
-                <AdminDashboard user={currentUser} allUsers={allUsers} packages={packages} pricingConfig={pricingConfig} onUpdatePricing={setPricingConfig} onUpdateUser={async (u) => { await DatabaseService.saveUser(u); }} onDeleteUser={() => {}} onLogout={handleLogout} />
+                <AdminDashboard user={currentUser} allUsers={allUsers} packages={packages} pricingConfig={pricingConfig} onUpdatePricing={setPricingConfig} onUpdateUser={async (u) => { await DatabaseService.saveUser(u); syncWithBackend(true); }} onDeleteUser={() => {}} onLogout={handleLogout} />
             ) : currentUser.role === UserRole.SENDER ? (
                 <SenderDashboard user={currentUser} packages={packages} allUsers={allUsers} notifications={notifications} pricingConfig={pricingConfig} onMarkNotifAsRead={handleMarkNotifAsRead} onCreatePackage={handleCreatePackage} />
             ) : (
-                <CourierDashboard user={currentUser} packages={packages} notifications={notifications} lastGain={lastGain} onAcceptPackage={handleAcceptPackage} onUpdateStatus={handleUpdateStatus} onMarkNotifAsRead={handleMarkNotifAsRead} onClearNotifications={() => {}} onRecharge={(a) => updateCourierWallets(currentUser.id, 0, -a, PaymentMethod.CASH)} onCloseGainModal={() => setLastGain(null)} />
+                <CourierDashboard user={currentUser} packages={packages} notifications={notifications} lastGain={lastGain} lastSync={lastSync} isSyncing={isSyncing} onAcceptPackage={handleAcceptPackage} onUpdateStatus={handleUpdateStatus} onMarkNotifAsRead={handleMarkNotifAsRead} onClearNotifications={() => {}} onRecharge={(a) => updateCourierWallets(currentUser.id, 0, -a, PaymentMethod.CASH)} onCloseGainModal={() => setLastGain(null)} />
             )
         )}
       </main>
@@ -232,8 +235,8 @@ const App: React.FC = () => {
           <span className="text-[10px] font-bold">Accueil</span>
         </div>
         
-        <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-pureOrange p-4 rounded-full shadow-lg shadow-pureOrange/40 border-4 border-midnight cursor-pointer hover:scale-110 active:scale-95 transition-all" onClick={() => setCurrentView('HOME')}>
-            <span className="text-white font-bold text-xl">{currentUser.role === UserRole.SENDER ? '+' : 'GO'}</span>
+        <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-pureOrange p-4 rounded-full shadow-lg shadow-pureOrange/40 border-4 border-midnight cursor-pointer hover:scale-110 active:scale-95 transition-all" onClick={() => { setCurrentView('HOME'); syncWithBackend(true); }}>
+            <span className="text-white font-bold text-xl">{currentUser.role === UserRole.SENDER ? '+' : <CloudLightning className="w-6 h-6"/>}</span>
         </div>
         
         <div onClick={() => setCurrentView('PROFILE')} className={`flex flex-col items-center gap-1 cursor-pointer transition-all ${['PROFILE', 'FAQ'].includes(currentView) ? 'text-pureOrange scale-110' : 'text-slate-500'}`}>
