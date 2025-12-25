@@ -206,6 +206,7 @@ export const SenderDashboard: React.FC<SenderDashboardProps> = ({
     const fullOrigin = `${newPkg.originCommune}: ${newPkg.originAddressDetails}`;
     const fullDest = `${newPkg.destinationCommune}: ${newPkg.destAddressDetails}`;
 
+    // Fix: Added missing required properties 'statusHistory' and 'updatedAt' to satisfy the Package interface.
     const pkg: Package = {
       id: Math.random().toString(36).substr(2, 9),
       trackingNumber,
@@ -227,7 +228,13 @@ export const SenderDashboard: React.FC<SenderDashboardProps> = ({
       estimatedDeliveryTime: deliveryTime,
       paymentMethod: newPkg.paymentMethod,
       status: PackageStatus.PENDING,
-      createdAt: Date.now()
+      statusHistory: [{
+        status: PackageStatus.PENDING,
+        timestamp: Date.now(),
+        notes: "Colis enregistré sur la plateforme"
+      }],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
     };
 
     if (newPkg.paymentMethod !== PaymentMethod.CASH) {
