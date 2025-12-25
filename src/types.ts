@@ -1,3 +1,4 @@
+
 export enum UserRole {
   SENDER = 'SENDER',
   COURIER = 'COURIER',
@@ -5,14 +6,14 @@ export enum UserRole {
 }
 
 export interface PricingConfig {
-  basePriceIntra: number; // 1500
-  basePriceInter: number; // 3000
-  basePriceDoc: number; // 2000
-  kmSurchargeInterval: number; // 5 (tous les 5km)
-  kmSurchargeAmount: number; // 500
-  weightSurchargeMedium: number; // 0.10 (10%)
-  weightSurchargeHeavy: number; // 0.30 (30%)
-  commissionRate: number; // 0.05 (5%)
+  basePriceIntra: number;
+  basePriceInter: number;
+  basePriceDoc: number;
+  kmSurchargeInterval: number;
+  kmSurchargeAmount: number;
+  weightSurchargeMedium: number;
+  weightSurchargeHeavy: number;
+  commissionRate: number;
 }
 
 export interface User {
@@ -22,11 +23,10 @@ export interface User {
   email?: string;
   password?: string;
   role: UserRole;
-  walletBalance?: number; // Caution (Rechargeable)
-  earningsBalance?: number; // Gains retirables (Issus des livraisons Wave/Momo)
-  isBlocked?: boolean; // Pour bannissement admin
+  walletBalance?: number;
+  earningsBalance?: number;
+  isBlocked?: boolean;
   createdAt?: number;
-  // Champs spécifiques livreur
   courierDetails?: {
     courierType: 'STANDARD' | 'INDEPENDENT';
     operatingCity: string;
@@ -59,10 +59,17 @@ export enum PackageStatus {
   CANCELLED = 'ANNULE',
 }
 
+export interface PackageStatusHistory {
+  status: PackageStatus;
+  timestamp: number;
+  notes?: string;
+  location?: string;
+}
+
 export enum ServiceLevel {
-  EXPRESS = 'EXPRESS',   // 24H
-  STANDARD = 'STANDARD', // 48H
-  ECO = 'ECO'            // 72H
+  EXPRESS = 'EXPRESS',
+  STANDARD = 'STANDARD',
+  ECO = 'ECO'
 }
 
 export enum PaymentMethod {
@@ -78,10 +85,10 @@ export interface Package {
   courierId?: string;
   description: string;
   
-  // Nouveaux champs pour le calcul avancé
-  packageCount: number; // Nombre de colis
-  weightKg: number; // Poids physique
-  dimensions?: { length: number; width: number; height: number }; // Dimensions pour le poids volumétrique
+  packageCount: number;
+  weightKg: number;
+  dimensions?: { length: number; width: number; height: number };
+  packageValue?: number; // Valeur déclarée (XOF)
   
   serviceLevel: ServiceLevel;
   distanceKm?: number;
@@ -100,7 +107,15 @@ export interface Package {
   paymentMethod: PaymentMethod;
   
   status: PackageStatus;
+  statusHistory: PackageStatusHistory[]; // Historique chronologique
+  
+  deliverySignature?: {
+    signerName: string;
+    signedAt: number;
+  };
+  
   createdAt: number;
+  updatedAt: number;
   estimatedDeliveryTime?: string;
 }
 
