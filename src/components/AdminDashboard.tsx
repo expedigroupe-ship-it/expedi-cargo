@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Package, PricingConfig, UserRole, PackageStatus } from '../types';
+// Added PaymentMethod to the import list to fix the undefined reference error.
+import { User, Package, PricingConfig, UserRole, PackageStatus, PaymentMethod } from '../types';
 import { Button } from './Button';
 import { Input } from './Input';
 import { Logo } from './Logo';
 import { 
-  LayoutDashboard, Users, Map, Settings, DollarSign, LogOut, 
+  LayoutDashboard, Users, Map as MapIcon, Settings, DollarSign, LogOut, 
   Search, Trash2, Ban, CheckCircle, Package as PackageIcon, 
   Truck, Navigation, Activity, Box, Info, Target
 } from 'lucide-react';
@@ -52,10 +53,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Map Lifecycle
   useEffect(() => {
-    if (activeTab === 'MAP' && mapRef.current && !mapInstance) {
+    if (activeTab === 'MAP' && mapRef.current && !mapInstance && typeof L !== 'undefined') {
       const map = L.map(mapRef.current, { zoomControl: false }).setView([ABIDJAN_COORDS.lat, ABIDJAN_COORDS.lng], 12);
       
-      // Utilisation d'un style de carte sombre pour coller à l'esthétique Midnight
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap &copy; CARTO'
       }).addTo(map);
@@ -72,20 +72,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setMapInstance(null);
         }
     };
-  }, [activeTab]);
+  }, [activeTab, mapInstance]);
 
   // Update Markers
   useEffect(() => {
-    if (activeTab === 'MAP' && mapInstance && markersGroupRef.current) {
+    if (activeTab === 'MAP' && mapInstance && markersGroupRef.current && typeof L !== 'undefined') {
         markersGroupRef.current.clearLayers();
 
         packages.filter(p => p.status !== PackageStatus.DELIVERED && p.status !== PackageStatus.CANCELLED).forEach(p => {
             const isSelected = p.id === selectedPkgId;
             const color = STATUS_COLORS[p.status] || '#ffffff';
             
-            // Simulation position : On place le marqueur aléatoirement autour d'Abidjan pour la démo
-            const lat = ABIDJAN_COORDS.lat + (Math.sin(parseInt(p.id, 36)) * 0.05);
-            const lng = ABIDJAN_COORDS.lng + (Math.cos(parseInt(p.id, 36)) * 0.05);
+            const lat = ABIDJAN_COORDS.lat + (Math.sin(parseInt(p.id, 36) || 0) * 0.05);
+            const lng = ABIDJAN_COORDS.lng + (Math.cos(parseInt(p.id, 36) || 0) * 0.05);
             
             const markerHtml = `
                 <div class="relative flex items-center justify-center">
@@ -127,7 +126,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const [priceForm, setPriceForm] = useState(pricingConfig);
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setPriceForm({ ...priceForm, [e.target.name]: parseFloat(e.target.value) });
+      setPriceForm({ ...priceForm, [e.target.name]: parseFloat(e.target.value) || 0 });
   };
   const savePricing = () => {
       onUpdatePricing(priceForm);
@@ -216,7 +215,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <h3 className="text-xl font-bold text-white">Annuaire Utilisateurs</h3>
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"/>
-                            <input type="text" placeholder="Rechercher un numéro..." className="bg-slate-900 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-pureOrange" />
+                            <input type="text" placeholder="Rechercher..." className="bg-slate-900 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-pureOrange" />
                         </div>
                       </div>
                       <div className="overflow-x-auto">
@@ -235,18 +234,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <tr key={u.id} className="border-b border-slate-700 hover:bg-slate-800/30">
                                         <td className="px-4 py-4 font-medium text-white flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center overflow-hidden">
-                                                {u.courierDetails?.photoUrl ? <img src={u.courierDetails.photoUrl} className="w-full h-full object-cover" /> : <Users className="w-4 h-4 text-slate-500"/>}
+                                                <Users className="w-4 h-4 text-slate-500"/>
                                             </div>
                                             {u.name}
                                         </td>
                                         <td className="px-4 py-4"><span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${u.role === UserRole.COURIER ? 'bg-pureOrange/10 text-pureOrange border border-pureOrange/20' : 'bg-blue-500/10 text-blue-500 border border-blue-500/20'}`}>{u.role}</span></td>
                                         <td className="px-4 py-4 font-mono">{u.phone}</td>
-                                        <td className="px-4 py-4 font-bold">{u.role === UserRole.COURIER ? `${u.walletBalance?.toLocaleString()} F` : '-'}</td>
+                                        <td className="px-4 py-4 font-bold">{u.role === UserRole.COURIER ? `${(u.walletBalance || 0).toLocaleString()} F` : '-'}</td>
                                         <td className="px-4 py-4 text-right flex justify-end gap-2">
-                                            <button onClick={() => onUpdateUser({...u, isBlocked: !u.isBlocked})} className={`p-2 rounded-lg transition-colors ${u.isBlocked ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'}`} title={u.isBlocked ? "Débloquer" : "Bloquer"}>
+                                            <button onClick={() => onUpdateUser({...u, isBlocked: !u.isBlocked})} className={`p-2 rounded-lg transition-colors ${u.isBlocked ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'}`}>
                                                 {u.isBlocked ? <CheckCircle className="w-4 h-4"/> : <Ban className="w-4 h-4"/>}
                                             </button>
-                                            <button onClick={() => onDeleteUser(u.id)} className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors" title="Supprimer">
+                                            <button onClick={() => onDeleteUser(u.id)} className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20">
                                                 <Trash2 className="w-4 h-4"/>
                                             </button>
                                         </td>
@@ -260,18 +259,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           case 'MAP':
               const activePackages = packages.filter(p => p.status !== PackageStatus.DELIVERED && p.status !== PackageStatus.CANCELLED);
               return (
-                  <div className="h-[75vh] flex gap-4 animate-fade-in">
-                      {/* Carte principale */}
-                      <div className="flex-1 bg-slate-800 rounded-3xl overflow-hidden border border-slate-700 relative shadow-2xl">
+                  <div className="h-[75vh] flex flex-col md:flex-row gap-4 animate-fade-in">
+                      <div className="flex-1 bg-slate-800 rounded-3xl overflow-hidden border border-slate-700 relative shadow-2xl min-h-[400px]">
                           <div ref={mapRef} className="w-full h-full z-0"></div>
-                          
-                          {/* Overlay de contrôle sur la carte */}
+                          {typeof L === 'undefined' && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 text-white z-10">
+                              Chargement de la carte...
+                            </div>
+                          )}
                           <div className="absolute top-4 left-4 z-[10] flex flex-col gap-2">
                               <div className="bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-slate-700 shadow-xl max-w-xs">
-                                  <h4 className="font-bold text-white mb-3 flex items-center gap-2"><Navigation className="w-4 h-4 text-pureOrange"/> Supervision Live</h4>
+                                  <h4 className="font-bold text-white mb-3 flex items-center gap-2 tracking-tight"><Navigation className="w-4 h-4 text-pureOrange"/> Supervision Live</h4>
                                   <div className="space-y-2">
                                       {Object.entries(STATUS_COLORS).map(([status, color]) => (
-                                          <div key={status} className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                          <div key={status} className="flex items-center justify-between text-[9px] font-bold uppercase tracking-widest text-slate-400">
                                               <div className="flex items-center gap-2">
                                                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }}></div>
                                                   {status}
@@ -284,15 +285,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </div>
                       </div>
 
-                      {/* Panneau latéral des flux actifs */}
-                      <div className="w-80 bg-midnightLight rounded-3xl border border-slate-700 flex flex-col overflow-hidden shadow-2xl">
+                      <div className="w-full md:w-80 bg-midnightLight rounded-3xl border border-slate-700 flex flex-col overflow-hidden shadow-2xl max-h-[75vh]">
                           <div className="p-5 border-b border-slate-800">
                               <h3 className="font-bold text-white flex items-center gap-2"><Activity className="w-4 h-4 text-pureOrange"/> Missions Actives</h3>
                               <p className="text-[10px] text-slate-500 uppercase font-black mt-1">{activePackages.length} Colis en mouvement</p>
                           </div>
                           <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
                               {activePackages.length === 0 ? (
-                                  <div className="text-center py-20">
+                                  <div className="text-center py-10">
                                       <Info className="w-8 h-8 text-slate-700 mx-auto mb-2" />
                                       <p className="text-xs text-slate-500 italic">Aucun mouvement détecté.</p>
                                   </div>
@@ -359,16 +359,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
                                 <p className="text-xs text-slate-500 font-bold uppercase mb-2">Chiffre d'Affaire Brut</p>
-                                <p className="text-2xl font-black text-white">{packages.filter(p => p.status === PackageStatus.DELIVERED).reduce((acc, p) => acc + p.price, 0).toLocaleString()} F</p>
+                                <p className="text-2xl font-black text-white">{packages.filter(p => p.status === PackageStatus.DELIVERED).reduce((acc, p) => acc + (p.price || 0), 0).toLocaleString()} F</p>
                             </div>
                             <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 border-l-4 border-l-pureOrange">
                                 <p className="text-xs text-slate-500 font-bold uppercase mb-2">Bénéfice Net (Commissions)</p>
                                 <p className="text-2xl font-black text-pureOrange">{totalRevenue.toLocaleString()} F</p>
                             </div>
                             <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
-                                <p className="text-xs text-slate-500 font-bold uppercase mb-2">Encours de paiement (Wave/Momo)</p>
+                                <p className="text-xs text-slate-500 font-bold uppercase mb-2">Encours de paiement (Mobile)</p>
                                 <p className="text-2xl font-black text-blue-500">
-                                    {packages.filter(p => p.status === PackageStatus.DELIVERED && p.paymentMethod !== 'ESPECES').reduce((acc, p) => acc + p.price, 0).toLocaleString()} F
+                                    {packages.filter(p => p.status === PackageStatus.DELIVERED && p.paymentMethod !== PaymentMethod.CASH).reduce((acc, p) => acc + (p.price || 0), 0).toLocaleString()} F
                                 </p>
                             </div>
                         </div>
@@ -389,15 +389,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <tbody className="divide-y divide-slate-800">
                                         {packages.filter(p => p.status === PackageStatus.DELIVERED).map(p => (
                                             <tr key={p.id} className="hover:bg-slate-800/30">
-                                                <td className="px-4 py-4 text-xs">{new Date(p.createdAt).toLocaleString()}</td>
+                                                <td className="px-4 py-4 text-xs">{new Date(p.createdAt || Date.now()).toLocaleString()}</td>
                                                 <td className="px-4 py-4 font-mono font-bold text-white text-xs">{p.trackingNumber}</td>
-                                                <td className="px-4 py-4 font-bold text-white">{p.price.toLocaleString()} F</td>
+                                                <td className="px-4 py-4 font-bold text-white">{(p.price || 0).toLocaleString()} F</td>
                                                 <td className="px-4 py-4">
                                                     <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700">
                                                         {p.paymentMethod}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-4 text-right text-green-500 font-black">+{Math.ceil(p.price * pricingConfig.commissionRate).toLocaleString()} F</td>
+                                                <td className="px-4 py-4 text-right text-green-500 font-black">+{Math.ceil((p.price || 0) * pricingConfig.commissionRate).toLocaleString()} F</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -413,8 +413,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   return (
     <div className="min-h-screen bg-midnight text-white flex">
-      {/* Sidebar de navigation persistante */}
-      <aside className="w-64 bg-midnightLight border-r border-slate-800 p-6 flex flex-col hidden lg:flex sticky top-0 h-screen">
+      <aside className="w-64 bg-midnightLight border-r border-slate-800 p-6 flex-col hidden lg:flex sticky top-0 h-screen">
         <div className="mb-10"><Logo size="sm" /></div>
         
         <nav className="flex-1 space-y-2">
@@ -425,7 +424,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                <Users className="w-5 h-5" /> <span className="text-sm font-bold">Utilisateurs</span>
            </button>
            <button onClick={() => setActiveTab('MAP')} className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all ${activeTab === 'MAP' ? 'bg-pureOrange text-white shadow-lg shadow-pureOrange/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-               <Map className="w-5 h-5" /> <span className="text-sm font-bold">Supervision Live</span>
+               <MapIcon className="w-5 h-5" /> <span className="text-sm font-bold">Supervision Live</span>
            </button>
            <button onClick={() => setActiveTab('FINANCE')} className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all ${activeTab === 'FINANCE' ? 'bg-pureOrange text-white shadow-lg shadow-pureOrange/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                <DollarSign className="w-5 h-5" /> <span className="text-sm font-bold">Finances</span>
@@ -440,14 +439,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </button>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 p-4 lg:p-8 overflow-y-auto bg-midnight">
-         {/* Mobile Navbar */}
-         <div className="lg:hidden flex justify-between items-center mb-6 bg-midnightLight p-4 rounded-2xl border border-slate-800">
+      <main className="flex-1 p-4 lg:p-8 overflow-y-auto bg-midnight max-w-full">
+         <div className="lg:hidden flex justify-between items-center mb-6 bg-midnightLight p-4 rounded-2xl border border-slate-800 shadow-lg">
              <Logo size="sm" />
              <div className="flex gap-2">
-                 <button onClick={() => setActiveTab('MAP')} className={`p-2 rounded-xl ${activeTab === 'MAP' ? 'bg-pureOrange' : 'bg-slate-800 text-slate-400'}`}><Map className="w-5 h-5"/></button>
-                 <button onClick={() => setActiveTab('OVERVIEW')} className={`p-2 rounded-xl ${activeTab === 'OVERVIEW' ? 'bg-pureOrange' : 'bg-slate-800 text-slate-400'}`}><LayoutDashboard className="w-5 h-5"/></button>
+                 <button onClick={() => setActiveTab('MAP')} className={`p-2 rounded-xl transition-colors ${activeTab === 'MAP' ? 'bg-pureOrange' : 'bg-slate-800 text-slate-400'}`}><MapIcon className="w-5 h-5"/></button>
+                 <button onClick={() => setActiveTab('OVERVIEW')} className={`p-2 rounded-xl transition-colors ${activeTab === 'OVERVIEW' ? 'bg-pureOrange' : 'bg-slate-800 text-slate-400'}`}><LayoutDashboard className="w-5 h-5"/></button>
                  <button onClick={onLogout} className="p-2 bg-slate-800 rounded-xl text-red-500"><LogOut className="w-5 h-5"/></button>
              </div>
          </div>
