@@ -13,7 +13,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     
     <script>
-      // Configuration Tailwind
       window.tailwind = window.tailwind || {};
       window.tailwind.config = {
         theme: {
@@ -57,6 +56,7 @@
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       .leaflet-container { height: 100%; width: 100%; z-index: 1; }
+      .custom-div-icon { background: none; border: none; }
     </style>
     <!-- Chargement de Leaflet avant le point d'entrée JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -74,7 +74,6 @@
 </head>
   <body>
     <div id="root"></div>
-    <!-- Chemin absolu vers le fichier d'entrée pour le bundler Vite -->
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
