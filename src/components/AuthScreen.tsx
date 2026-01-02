@@ -180,47 +180,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, users, packages
                         </div>
                         <Button fullWidth onClick={findTracking}>Suivre mon colis</Button>
                         {error && <p className="text-red-500 text-xs text-center">{error}</p>}
-
-                        {foundPackage && (
-                            <div className="mt-6 p-6 bg-slate-900 rounded-2xl border border-slate-800 animate-fade-in">
-                                <div className="flex justify-between items-center mb-4">
-                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Colis {foundPackage.trackingNumber}</span>
-                                    <span className="px-3 py-1 bg-pureOrange/10 text-pureOrange border border-pureOrange/20 rounded-full text-[10px] font-black uppercase">{foundPackage.status}</span>
-                                </div>
-                                <div className="space-y-4">
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5"></div>
-                                        <div>
-                                            <p className="text-[10px] text-slate-500 font-bold uppercase">Départ</p>
-                                            <p className="text-xs font-bold">{foundPackage.originAddress}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-pureOrange mt-1.5"></div>
-                                        <div>
-                                            <p className="text-[10px] text-slate-500 font-bold uppercase">Arrivée</p>
-                                            <p className="text-xs font-bold">{foundPackage.destinationAddress}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="mt-6 pt-4 border-t border-slate-800">
-                                    <p className="text-[10px] text-slate-500 uppercase font-black mb-2">Historique</p>
-                                    <div className="space-y-3">
-                                        {foundPackage.statusHistory.slice().reverse().map((h, i) => (
-                                            <div key={i} className="flex gap-3">
-                                                <div className="w-px bg-slate-800 relative">
-                                                    <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-pureOrange' : 'bg-slate-700'}`}></div>
-                                                </div>
-                                                <div>
-                                                    <p className={`text-[11px] font-bold ${i === 0 ? 'text-white' : 'text-slate-500'}`}>{h.status}</p>
-                                                    <p className="text-[9px] text-slate-600">{new Date(h.timestamp).toLocaleString()}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
             ) : (
@@ -278,17 +237,16 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, users, packages
 
                     {step === 'PHOTO' && (
                         <div className="space-y-6 animate-fade-in text-center">
-                            <p className="text-sm text-slate-400">Ajoutez une {formData.courierType === 'STANDARD' ? "photo du logo" : "photo de profil"}.</p>
+                            <p className="text-sm text-slate-400">Ajoutez une photo.</p>
                             <div className="relative w-32 h-32 mx-auto">
                                 <div className="w-full h-full rounded-full border-4 border-dashed border-slate-700 flex items-center justify-center overflow-hidden bg-slate-900">
                                     {formData.photoUrl ? <img src={formData.photoUrl} className="w-full h-full object-cover" /> : <Camera className="w-10 h-10 text-slate-700"/>}
                                 </div>
-                                <label className="absolute bottom-0 right-0 p-2 bg-pureOrange rounded-full cursor-pointer shadow-lg">
+                                <label className="absolute bottom-0 right-0 p-2 bg-pureOrange rounded-full cursor-pointer">
                                     <Camera className="w-5 h-5 text-white" />
                                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(e, 'photoUrl')} />
                                 </label>
                             </div>
-                            {error && <p className="text-red-500 text-[10px]">{error}</p>}
                             <Button fullWidth onClick={validateAndNext}>Suivant</Button>
                         </div>
                     )}
@@ -297,9 +255,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, users, packages
                         <div className="space-y-4 animate-fade-in">
                             <Input label="Type de Véhicule" as="select" options={VEHICLE_TYPES} value={formData.vehicleType} onChange={e => setFormData({...formData, vehicleType: e.target.value as any})} />
                             <Input label="Plaque d'immatriculation" placeholder="Ex: 1234AB01" value={formData.vehiclePlate} onChange={e => setFormData({...formData, vehiclePlate: e.target.value})} />
-                            {/* Fixed typo: Spread formData and updated correct property key. */}
                             <Input label="Ville principale" as="select" options={CITIES.map(c => ({label: c, value: c}))} value={formData.operatingCity} onChange={e => setFormData({...formData, operatingCity: e.target.value})} />
-                            {error && <p className="text-red-500 text-[10px] text-center">{error}</p>}
                             <Button fullWidth onClick={validateAndNext}>Suivant</Button>
                         </div>
                     )}
@@ -307,9 +263,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, users, packages
                     {step === 'DOCS' && (
                         <div className="space-y-4 animate-fade-in">
                             <Input label="Numéro de CNI" value={formData.idCardNumber} onChange={e => setFormData({...formData, idCardNumber: e.target.value})} />
-                            <Input label="Numéro de Permis de conduire" placeholder="Requis pour la certification" value={formData.licenseNumber} onChange={e => setFormData({...formData, licenseNumber: e.target.value})} />
+                            <Input label="Numéro de Permis" value={formData.licenseNumber} onChange={e => setFormData({...formData, licenseNumber: e.target.value})} />
                             <div className="space-y-2">
-                                <label className="text-xs text-slate-500 font-bold uppercase flex items-center gap-2"><FileText className="w-3 h-3"/> Recto de la CNI / Justificatif</label>
+                                <label className="text-xs text-slate-500 font-bold uppercase flex items-center gap-2"><FileText className="w-3 h-3"/> Recto CNI</label>
                                 <div className="w-full h-40 border-2 border-dashed border-slate-700 rounded-xl flex items-center justify-center bg-slate-900 overflow-hidden relative group">
                                     {formData.idPhotoUrl ? <img src={formData.idPhotoUrl} className="w-full h-full object-contain" /> : <Box className="w-8 h-8 text-slate-700" />}
                                     <label className="absolute inset-0 cursor-pointer flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/50 transition-opacity">
@@ -318,7 +274,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, users, packages
                                     </label>
                                 </div>
                             </div>
-                            {error && <p className="text-red-500 text-[10px] text-center">{error}</p>}
                             <Button fullWidth onClick={validateAndNext}>Vérifier les documents</Button>
                         </div>
                     )}
@@ -326,14 +281,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, users, packages
                     {step === 'FINISH' && (
                         <div className="space-y-6 animate-fade-in text-center">
                             <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle2 className="w-10 h-10 text-green-500" /></div>
-                            <h4 className="text-lg font-bold">Bienvenue chez ExpediCargo</h4>
-                            <p className="text-xs text-slate-400">Votre compte sera activé après vérification manuelle de vos pièces justificatives.</p>
+                            <h4 className="text-lg font-bold">Prêt !</h4>
+                            <p className="text-xs text-slate-400">Votre compte sera activé après vérification.</p>
                             <label className="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" className="w-5 h-5 accent-pureOrange" checked={formData.acceptTerms} onChange={e => setFormData({...formData, acceptTerms: e.target.checked})} />
-                                <span className="text-[10px] text-slate-400 text-left">J'accepte les conditions générales d'utilisation.</span>
+                                <span className="text-[10px] text-slate-400 text-left">J'accepte les conditions générales.</span>
                             </label>
-                            {error && <p className="text-red-500 text-[10px]">{error}</p>}
-                            <Button fullWidth isLoading={loading} onClick={handleRegister}>Terminer l'inscription</Button>
+                            <Button fullWidth isLoading={loading} onClick={handleRegister}>Terminer</Button>
                         </div>
                     )}
                 </div>
