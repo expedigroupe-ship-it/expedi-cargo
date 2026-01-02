@@ -156,13 +156,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-
-function App() {
-  return (
-    <div className="min-h-screen bg-midnight text-white flex items-center justify-center">
-      <h1 className="text-3xl font-bold">EXPEDI-CARGO</h1>
-    </div>
-  );
-}
-
-export default App;
