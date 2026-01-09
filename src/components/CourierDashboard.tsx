@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Package, PackageStatus, AppNotification } from '../types';
 import { Button } from './Button';
 import { Input } from './Input';
@@ -8,8 +8,10 @@ import {
   CheckCircle2, Box, Bell, 
   PlusCircle, Radar, 
   Clock, UserCheck, ShieldCheck, AlertTriangle,
-  Award, TrendingUp
+  Award, TrendingUp, Map as MapIcon, Navigation, X, MapPin
 } from 'lucide-react';
+
+declare const L: any;
 
 interface CourierDashboardProps {
   user: User;
@@ -26,6 +28,15 @@ interface CourierDashboardProps {
   onCloseGainModal: () => void;
 }
 
+const ABIDJAN_COMMUNES_COORDS: Record<string, {lat: number, lng: number}> = {
+  'Abobo': { lat: 5.415, lng: -4.020 }, 'Adjamé': { lat: 5.355, lng: -4.030 },
+  'Anyama': { lat: 5.495, lng: -4.055 }, 'Attécoubé': { lat: 5.330, lng: -4.040 },
+  'Bingerville': { lat: 5.355, lng: -3.895 }, 'Cocody': { lat: 5.354, lng: -3.975 },
+  'Koumassi': { lat: 5.300, lng: -3.950 }, 'Marcory': { lat: 5.305, lng: -3.980 },
+  'Plateau': { lat: 5.325, lng: -4.020 }, 'Port-Bouët': { lat: 5.255, lng: -3.960 },
+  'Yopougon': { lat: 5.340, lng: -4.080 }
+};
+
 export const CourierDashboard: React.FC<CourierDashboardProps> = ({ 
   user, packages, notifications, isSyncing, onAcceptPackage, onUpdateStatus, onRecharge
 }) => {
@@ -35,9 +46,67 @@ export const CourierDashboard: React.FC<CourierDashboardProps> = ({
   
   const [signingPackage, setSigningPackage] = useState<Package | null>(null);
   const [signerName, setSignerName] = useState('');
+  
+  const [mapPackageId, setMapPackageId] = useState<string | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
 
   const availablePackages = packages.filter(p => p.status === PackageStatus.PENDING);
   const myJobs = packages.filter(p => p.courierId === user.id);
+
+  // Helper pour extraire la commune de l'adresse
+  const getCoordsFromAddress = (address: string) => {
+    const commune = Object.keys(ABIDJAN_COMMUNES_COORDS).find(c => address.includes(c));
+    return commune ? ABIDJAN_COMMUNES_COORDS[commune] : { lat: 5.34, lng: -4.02 };
+  };
+
+  useEffect(() => {
+    if (mapPackageId && mapContainerRef.current && typeof L !== 'undefined') {
+        const pkg = packages.find(p => p.id === mapPackageId);
+        if (!pkg) return;
+
+        const origin = getCoordsFromAddress(pkg.originAddress);
+        const dest = getCoordsFromAddress(pkg.destinationAddress);
+
+        if (mapInstanceRef.current) {
+            mapInstanceRef.current.remove();
+        }
+
+        mapInstanceRef.current = L.map(mapContainerRef.current, { zoomControl: false }).setView([origin.lat, origin.lng], 12);
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { 
+            attribution: '&copy; Leaflet | &copy; CARTO' 
+        }).addTo(mapInstanceRef.current);
+
+        const originIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: `<div style="background-color: #3b82f6; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px #3b82f6"></div>`,
+            iconSize: [14, 14], iconAnchor: [7, 7]
+        });
+
+        const destIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: `<div style="background-color: #ff6b00; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px #ff6b00"></div>`,
+            iconSize: [14, 14], iconAnchor: [7, 7]
+        });
+
+        L.marker([origin.lat, origin.lng], { icon: originIcon }).addTo(mapInstanceRef.current);
+        L.marker([dest.lat, dest.lng], { icon: destIcon }).addTo(mapInstanceRef.current);
+        
+        L.polyline([[origin.lat, origin.lng], [dest.lat, dest.lng]], { 
+            color: '#ff6b00', weight: 2, dashArray: '5, 8', opacity: 0.6 
+        }).addTo(mapInstanceRef.current);
+
+        const bounds = L.latLngBounds([[origin.lat, origin.lng], [dest.lat, dest.lng]]);
+        mapInstanceRef.current.fitBounds(bounds, { padding: [30, 30] });
+    }
+    return () => {
+        if (!mapPackageId && mapInstanceRef.current) {
+            mapInstanceRef.current.remove();
+            mapInstanceRef.current = null;
+        }
+    };
+  }, [mapPackageId, packages]);
 
   const handleAcceptCourse = (pkgId: string) => {
     if ((user.walletBalance || 0) < 5000) {
@@ -153,7 +222,7 @@ export const CourierDashboard: React.FC<CourierDashboardProps> = ({
                         </div>
                     </div>
                     
-                    <div className="flex items-center gap-4 text-xs text-slate-400 mb-6 bg-midnight/30 p-4 rounded-2xl border border-slate-800/50">
+                    <div className="flex items-center gap-4 text-xs text-slate-400 mb-4 bg-midnight/30 p-4 rounded-2xl border border-slate-800/50">
                         <div className="flex flex-col items-center gap-1.5 shrink-0">
                             <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]"></div>
                             <div className="w-px h-6 bg-slate-700"></div>
@@ -169,7 +238,29 @@ export const CourierDashboard: React.FC<CourierDashboardProps> = ({
                                 <p className="text-xs text-white font-bold truncate">{pkg.destinationAddress}</p>
                             </div>
                         </div>
+                        <button 
+                            onClick={() => setMapPackageId(mapPackageId === pkg.id ? null : pkg.id)}
+                            className={`p-3 rounded-xl transition-all ${mapPackageId === pkg.id ? 'bg-pureOrange text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                        >
+                            <MapIcon className="w-5 h-5" />
+                        </button>
                     </div>
+
+                    {mapPackageId === pkg.id && (
+                        <div className="mb-4 animate-fade-in">
+                            <div className="relative h-48 w-full rounded-2xl overflow-hidden border border-slate-700 bg-slate-900 shadow-inner">
+                                <div ref={mapContainerRef} className="h-full w-full z-0"></div>
+                                <div className="absolute top-2 right-2 z-10">
+                                    <button onClick={() => setMapPackageId(null)} className="p-1 bg-midnight/80 rounded-full text-white backdrop-blur-md">
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                <div className="absolute bottom-2 left-2 z-10 bg-midnight/80 px-2 py-1 rounded-lg text-[8px] font-black uppercase text-slate-400 border border-slate-800 backdrop-blur-md">
+                                    Aperçu trajet
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     
                     {activeTab === 'MARKET' ? (
                         <Button fullWidth onClick={() => handleAcceptCourse(pkg.id)} className="shadow-lg shadow-pureOrange/10">Accepter la course</Button>
