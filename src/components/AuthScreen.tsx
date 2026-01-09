@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Logo } from './Logo';
 import { Button } from './Button';
@@ -9,7 +8,7 @@ import {
   ArrowRight, Search, ChevronLeft, Zap, Box, 
   Smartphone, UserCircle2, Building2, 
   CheckCircle2, Lock, Camera, Eye, EyeOff, FileText,
-  ShieldAlert
+  ShieldAlert, X, HelpCircle
 } from 'lucide-react';
 
 interface AuthScreenProps {
@@ -27,6 +26,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, users, packages
   const [step, setStep] = useState<RegisterStep>('ROLE');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showLegalModal, setShowLegalModal] = useState(false);
   
   const [trackingId, setTrackingId] = useState('');
   const [foundPackage, setFoundPackage] = useState<Package | null>(null);
@@ -128,11 +128,82 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, users, packages
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-midnight text-white">
         <div className="mb-8"><Logo /></div>
         
+        {showLegalModal && (
+            <div className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in">
+                <div className="bg-midnightLight w-full max-w-lg h-[80vh] rounded-3xl border border-slate-700 overflow-hidden flex flex-col">
+                    <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+                        <h3 className="font-bold text-lg text-pureOrange">Conditions & Confidentialité</h3>
+                        <button onClick={() => setShowLegalModal(false)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 transition-colors">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-8 space-y-6 text-sm text-slate-300 no-scrollbar">
+                        <section>
+                            <h4 className="font-black text-white text-base mb-2 uppercase tracking-tight">1. Présentation du service</h4>
+                            <p>Expedi Cargo, filiale d'Expedi-Groupe, est une plateforme de livraison opérant en Côte d'Ivoire et dans la sous-région. Nous mettons en relation les expéditeurs et les livreurs certifiés pour assurer des livraisons rapides et sécurisées.</p>
+                            <ul className="mt-2 list-disc list-inside space-y-1 text-xs">
+                                <li>Livraison express (24h)</li>
+                                <li>Livraison standard (48h)</li>
+                                <li>Livraison économique (72h)</li>
+                                <li>Suivi en temps réel des colis</li>
+                                <li>Notifications SMS automatiques</li>
+                            </ul>
+                        </section>
+                        <section>
+                            <h4 className="font-black text-white text-base mb-2 uppercase tracking-tight">2. Acceptation des conditions</h4>
+                            <p>En utilisant nos services, vous acceptez pleinement et sans réserve les présentes conditions générales d'utilisation. Si vous n'acceptez pas ces conditions, veuillez ne pas utiliser nos services.</p>
+                            <p className="mt-2 italic">L'utilisation de nos services implique votre accord avec :</p>
+                            <ul className="list-disc list-inside space-y-1 text-xs">
+                                <li>Le respect de nos politiques de confidentialité</li>
+                                <li>L'exactitude des informations fournies</li>
+                                <li>Le paiement des frais de livraison</li>
+                                <li>Le respect de nos règles de conduite</li>
+                            </ul>
+                        </section>
+                        <section>
+                            <h4 className="font-black text-white text-base mb-2 uppercase tracking-tight">3. Responsabilités des utilisateurs</h4>
+                            <p className="font-bold text-pureOrange mb-1">Pour les expéditeurs :</p>
+                            <ul className="list-disc list-inside space-y-1 text-xs">
+                                <li>Fournir des informations exactes sur le colis et les adresses</li>
+                                <li>S'assurer que le contenu respecte la législation ivoirienne</li>
+                                <li>Emballer correctement les objets fragiles</li>
+                                <li>Être disponible pour la récupération du colis</li>
+                            </ul>
+                        </section>
+                        <section>
+                            <h4 className="font-black text-white text-base mb-2 uppercase tracking-tight">4. Limitation de responsabilité</h4>
+                            <p>Expedi Cargo s'engage à traiter vos colis avec le plus grand soin. Cependant, notre responsabilité est limitée dans les cas suivants :</p>
+                            <ul className="list-disc list-inside space-y-1 text-xs">
+                                <li>Emballage inadéquat par l'expéditeur</li>
+                                <li>Colis contenant des objets interdits</li>
+                                <li>Informations erronées fournies par le client</li>
+                                <li>Cas de force majeure (catastrophes naturelles, grèves, etc.)</li>
+                                <li>Retard dû à des circonstances indépendantes de notre volonté</li>
+                            </ul>
+                            <p className="mt-2 font-bold text-white">En cas de perte ou de dommage, notre indemnisation est limitée à la valeur déclarée du colis.</p>
+                        </section>
+                        <section>
+                            <h4 className="font-black text-white text-base mb-2 uppercase tracking-tight">5. Modification des conditions</h4>
+                            <p>Expedi Cargo se réserve le droit de modifier ces conditions générales à tout moment. Les utilisateurs seront informés des modifications par email ou notification sur la plateforme.</p>
+                        </section>
+                        <section>
+                            <h4 className="font-black text-white text-base mb-2 uppercase tracking-tight">8. Contact et litiges</h4>
+                            <p>Pour toute question concernant ces conditions, contactez-nous :</p>
+                            <p className="font-bold text-pureOrange mt-2">+225 07 58 83 032 (WhatsApp)</p>
+                            <p>Côte d'Ivoire</p>
+                        </section>
+                    </div>
+                    <div className="p-6 border-t border-slate-800">
+                        <Button fullWidth onClick={() => setShowLegalModal(false)}>J'ai lu et compris</Button>
+                    </div>
+                </div>
+            </div>
+        )}
+
         <div className="w-full max-w-md bg-midnightLight/50 p-8 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden">
             {view === 'LOGIN' ? (
                 <div className="animate-fade-in">
-                    <h2 className="text-2xl font-black mb-2">Connexion</h2>
-                    <p className="text-sm text-slate-500 mb-8">EXPEDI-CARGO Logistique</p>
+                    <h2 className="text-2xl font-black mb-8">Connexion</h2>
                     
                     <form onSubmit={handleLogin} className="space-y-4">
                         <Input label="Téléphone" placeholder="07xxxxxxxx" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} required />
@@ -148,6 +219,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, users, packages
                                 <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} className="w-4 h-4 accent-pureOrange" />
                                 <span className="text-[11px] text-slate-400">Se souvenir de moi</span>
                             </label>
+                            <button type="button" onClick={() => setView('FORGOT_PASSWORD')} className="text-[11px] text-pureOrange hover:underline font-bold">Mot de passe oublié ?</button>
                         </div>
 
                         {error && <p className="text-red-500 text-xs text-center">{error}</p>}
@@ -159,6 +231,28 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, users, packages
                             <Search className="w-4 h-4 text-pureOrange" /> Suivre un colis
                         </button>
                         <button onClick={() => setView('REGISTER')} className="text-sm text-slate-400 hover:text-pureOrange transition-colors text-center mt-2">Pas encore de compte ? Créer un compte</button>
+                    </div>
+                </div>
+            ) : view === 'FORGOT_PASSWORD' ? (
+                <div className="animate-fade-in-up">
+                    <div className="flex items-center gap-2 mb-6">
+                        <button onClick={() => setView('LOGIN')} className="p-2 hover:bg-slate-800 rounded-full"><ChevronLeft className="w-5 h-5"/></button>
+                        <h2 className="text-xl font-bold">Récupération</h2>
+                    </div>
+                    
+                    <div className="space-y-6 text-center">
+                        <div className="w-16 h-16 bg-pureOrange/10 rounded-full flex items-center justify-center mx-auto mb-2">
+                            <HelpCircle className="w-8 h-8 text-pureOrange" />
+                        </div>
+                        <p className="text-sm text-slate-400 px-4">Entrez votre numéro de téléphone pour recevoir un code de réinitialisation par SMS.</p>
+                        
+                        <Input label="Numéro de téléphone" placeholder="07xxxxxxxx" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                        
+                        <Button fullWidth onClick={() => { alert("Un code de vérification a été envoyé au " + formData.phone); setView('LOGIN'); }}>
+                            Envoyer les instructions
+                        </Button>
+                        
+                        <button onClick={() => setView('LOGIN')} className="text-xs text-slate-500 hover:text-white uppercase font-black tracking-widest">Retour à la connexion</button>
                     </div>
                 </div>
             ) : view === 'TRACKING' ? (
@@ -283,11 +377,21 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, users, packages
                             <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle2 className="w-10 h-10 text-green-500" /></div>
                             <h4 className="text-lg font-bold">Prêt !</h4>
                             <p className="text-xs text-slate-400">Votre compte sera activé après vérification.</p>
-                            <label className="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" className="w-5 h-5 accent-pureOrange" checked={formData.acceptTerms} onChange={e => setFormData({...formData, acceptTerms: e.target.checked})} />
-                                <span className="text-[10px] text-slate-400 text-left">J'accepte les conditions générales.</span>
+                            
+                            <label className="flex items-start gap-3 cursor-pointer p-4 bg-slate-900/50 rounded-2xl border border-slate-800 text-left">
+                                <input 
+                                    type="checkbox" 
+                                    className="w-5 h-5 accent-pureOrange mt-1 shrink-0" 
+                                    checked={formData.acceptTerms} 
+                                    onChange={e => setFormData({...formData, acceptTerms: e.target.checked})} 
+                                />
+                                <span className="text-[11px] text-slate-400 leading-relaxed">
+                                    J'accepte les <span onClick={(e) => { e.preventDefault(); setShowLegalModal(true); }} className="text-red-600 underline font-bold">Conditions d'Utilisation</span> et la <span onClick={(e) => { e.preventDefault(); setShowLegalModal(true); }} className="text-red-600 underline font-bold">Politique de Confidentialité</span>.
+                                </span>
                             </label>
-                            <Button fullWidth isLoading={loading} onClick={handleRegister}>Terminer</Button>
+
+                            {error && <p className="text-red-500 text-[10px] font-bold">{error}</p>}
+                            <Button fullWidth isLoading={loading} onClick={handleRegister}>Terminer l'inscription</Button>
                         </div>
                     )}
                 </div>
