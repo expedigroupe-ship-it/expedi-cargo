@@ -9,7 +9,7 @@ import {
   Plus, Box, MapPin, Clock, Zap, 
   Navigation, Search, QrCode, X, 
   Smartphone, UserCircle2, Info,
-  Bell, CheckCircle2, User as UserIcon,
+  Bell, User as UserIcon,
   PackageCheck, Truck, ShieldCheck,
   Coins
 } from 'lucide-react';
@@ -227,9 +227,9 @@ export const SenderDashboard: React.FC<SenderDashboardProps> = ({
                <h4 className="text-[10px] text-slate-500 font-black uppercase tracking-widest border-b border-slate-800 pb-2 flex items-center gap-2"><UserIcon className="w-3 h-3"/> Coordonnées Expéditeur</h4>
                <Input label="Nom et prénoms (expéditeur)" value={newPkg.senderFullName} onChange={e => setNewPkg({...newPkg, senderFullName: e.target.value})} required />
                <Input label="Numéro de tél" value={newPkg.senderPhone} onChange={e => setNewPkg({...newPkg, senderPhone: e.target.value})} required />
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                    <Input label="Commune / Ville" as="select" options={COMMUNES_LIST.map(c => ({label: c, value: c}))} value={newPkg.originCommune} onChange={e => {setNewPkg({...newPkg, originCommune: e.target.value}); setCoords({...coords, origin: ABIDJAN_COMMUNES_COORDS[e.target.value]})}} />
-                   <div className="grid grid-cols-3 gap-2 col-span-1">
+                   <div className="grid grid-cols-3 gap-2">
                         <Input label="Quartier" placeholder="Quartier" value={newPkg.originQuartier} onChange={e => setNewPkg({...newPkg, originQuartier: e.target.value})} required />
                         <Input label="Rue" placeholder="Rue" value={newPkg.originRue} onChange={e => setNewPkg({...newPkg, originRue: e.target.value})} />
                         <Input label="Porte" placeholder="Porte" value={newPkg.originPorte} onChange={e => setNewPkg({...newPkg, originPorte: e.target.value})} />
@@ -242,9 +242,9 @@ export const SenderDashboard: React.FC<SenderDashboardProps> = ({
                <h4 className="text-[10px] text-slate-500 font-black uppercase tracking-widest border-b border-slate-800 pb-2 flex items-center gap-2 text-blue-500"><Navigation className="w-3 h-3"/> COORDONNEES DESTINATAIRE</h4>
                <Input label="Nom et prénoms" value={newPkg.recipientFullName} onChange={e => setNewPkg({...newPkg, recipientFullName: e.target.value})} required />
                <Input label="Numéro de tél" value={newPkg.recipientPhone} onChange={e => setNewPkg({...newPkg, recipientPhone: e.target.value})} required />
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                    <Input label="Commune / Ville" as="select" options={COMMUNES_LIST.map(c => ({label: c, value: c}))} value={newPkg.destinationCommune} onChange={e => {setNewPkg({...newPkg, destinationCommune: e.target.value}); setCoords({...coords, dest: ABIDJAN_COMMUNES_COORDS[e.target.value]})}} />
-                   <div className="grid grid-cols-3 gap-2 col-span-1">
+                   <div className="grid grid-cols-3 gap-2">
                         <Input label="Quartier" placeholder="Quartier" value={newPkg.destQuartier} onChange={e => setNewPkg({...newPkg, destQuartier: e.target.value})} required />
                         <Input label="Rue" placeholder="Rue" value={newPkg.destRue} onChange={e => setNewPkg({...newPkg, destRue: e.target.value})} />
                         <Input label="Porte" placeholder="Porte" value={newPkg.destPorte} onChange={e => setNewPkg({...newPkg, destPorte: e.target.value})} />
@@ -255,7 +255,7 @@ export const SenderDashboard: React.FC<SenderDashboardProps> = ({
            {/* DÉTAILS DU COLIS */}
            <div className="space-y-6">
                <h4 className="text-[10px] text-slate-500 font-black uppercase tracking-widest border-b border-slate-800 pb-2 flex items-center gap-2 text-green-500"><PackageCheck className="w-3 h-3"/> Détails du colis</h4>
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input label="Type de colis" as="select" options={[
                         {label: 'Documents', value: 'Documents'},
                         {label: 'Appareils', value: 'Appareils'},
@@ -325,30 +325,54 @@ export const SenderDashboard: React.FC<SenderDashboardProps> = ({
                       <Button onClick={() => setView('CREATE')}>Créer mon premier envoi</Button>
                   </div>
               ) : (
-                  myPackages.map(pkg => (
-                    <div key={pkg.id} className="bg-midnightLight p-5 rounded-3xl border border-slate-800 shadow-xl group hover:border-pureOrange/50 transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                            <div>
-                                <h4 className="font-bold text-lg text-white group-hover:text-pureOrange transition-colors">{pkg.description}</h4>
-                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">Ref: {pkg.trackingNumber}</p>
+                  myPackages.map(pkg => {
+                    const courier = pkg.courierId ? allUsers.find(u => u.id === pkg.courierId) : null;
+                    return (
+                        <div key={pkg.id} className="bg-midnightLight p-5 rounded-3xl border border-slate-800 shadow-xl group hover:border-pureOrange/50 transition-all">
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <h4 className="font-bold text-lg text-white group-hover:text-pureOrange transition-colors">{pkg.description}</h4>
+                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">Ref: {pkg.trackingNumber}</p>
+                                </div>
+                                <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter bg-pureOrange/10 text-pureOrange border border-pureOrange/20">{pkg.status}</span>
                             </div>
-                            <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter bg-pureOrange/10 text-pureOrange border border-pureOrange/20">{pkg.status}</span>
-                        </div>
-                        <div className="flex items-center gap-4 text-xs text-slate-400 mb-6 border-l-2 border-slate-800 pl-4 py-1">
-                            <div className="flex flex-col gap-2">
-                                <div className="flex items-center gap-2"><MapPin className="w-3 h-3 text-blue-500" /> <span className="truncate max-w-[200px]">{pkg.originAddress}</span></div>
-                                <div className="flex items-center gap-2"><Navigation className="w-3 h-3 text-pureOrange" /> <span className="truncate max-w-[200px]">{pkg.destinationAddress}</span></div>
+                            <div className="flex items-center gap-4 text-xs text-slate-400 mb-6 border-l-2 border-slate-800 pl-4 py-1">
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex items-center gap-2"><MapPin className="w-3 h-3 text-blue-500" /> <span className="truncate max-w-[200px]">{pkg.originAddress}</span></div>
+                                    <div className="flex items-center gap-2"><Navigation className="w-3 h-3 text-pureOrange" /> <span className="truncate max-w-[200px]">{pkg.destinationAddress}</span></div>
+                                </div>
+                            </div>
+
+                            {courier && (
+                                <div className="mb-6 p-3 bg-blue-500/5 border border-blue-500/10 rounded-2xl flex items-center gap-3 animate-fade-in">
+                                    <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-blue-500/20 overflow-hidden shrink-0">
+                                        {courier.courierDetails?.photoUrl ? (
+                                            <img src={courier.courierDetails.photoUrl} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <UserIcon className="w-5 h-5 text-blue-400" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-[9px] text-blue-400 font-black uppercase tracking-widest">Livreur assigné</p>
+                                        <p className="text-xs font-bold text-white truncate">{courier.name}</p>
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase">{courier.courierDetails?.vehiclePlate || 'Immatriculation N/A'}</p>
+                                    </div>
+                                    <a href={`tel:${courier.phone}`} className="p-2.5 bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all">
+                                        <Smartphone className="w-4 h-4" />
+                                    </a>
+                                </div>
+                            )}
+
+                            <div className="flex justify-between items-center">
+                                <button onClick={() => setQrPackage(pkg)} className="p-3 bg-slate-900 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all"><QrCode className="w-5 h-5"/></button>
+                                <div className="text-right">
+                                    <p className="text-[8px] text-slate-500 uppercase font-black">Coût total</p>
+                                    <p className="font-black text-white text-lg">{pkg.price.toLocaleString()} F</p>
+                                </div>
                             </div>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <button onClick={() => setQrPackage(pkg)} className="p-3 bg-slate-900 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all"><QrCode className="w-5 h-5"/></button>
-                            <div className="text-right">
-                                <p className="text-[8px] text-slate-500 uppercase font-black">Coût total</p>
-                                <p className="font-black text-white text-lg">{pkg.price.toLocaleString()} F</p>
-                            </div>
-                        </div>
-                    </div>
-                  ))
+                    );
+                  })
               )}
           </div>
       )}
